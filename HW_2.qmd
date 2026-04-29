@@ -1,0 +1,62 @@
+---
+title: "HW_2"
+format: html
+editor: visual
+mainfont: "Arial"
+editor: visual
+author: "Megan Baker and Rebeca Adam"
+date: "2026-05-04"
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Intro
+Imagine you are working on a project, where you are looking trends in water temperature you want to figure out if a) there is a trend and b) if the slope (trend) is positive (increasing) or negative (decreasing) and c) if there are differences between sites. Megan- January Rebeca- June
+
+## Libraries setup
+
+```{r}
+# Clear the environment
+rm(list=ls())
+
+# Install "dataRetreival"
+install.packages("dataRetrieval")
+
+# Libraries
+library(tidyverse)
+library(here)
+library(ggplot2)
+library(lubridate)
+library(dataRetrieval)
+library(tidyverse)
+```
+
+## Pasted from assignment
+
+```{r}
+siteNumbers <- c("14211720", "14211010", "14166000")
+parameterCd <- "00010"  # water temperature
+startDate <- "2010-01-01"
+endDate <- "2023-12-31"
+
+temp_data <- readNWISdv(siteNumbers, parameterCd, startDate, endDate)
+```
+
+## Pasted from assignment
+
+```{r}
+# rename columns for clarity
+colnames(temp_data) <- c("agency_cd", "site_no", "Date", "temp_C")
+# extract some date info for use later
+temp_data$month = month(temp_data$Date, label=TRUE)
+temp_data$year = year(temp_data$Date)
+
+# check by plotting
+ggplot(temp_data, aes(x=Date, y=temp_C, color=site_no)) +
+  geom_line() +
+  labs(title="Stream Temperature at Willamette River Sites",
+       x="Date", y="Temperature (°C)", color="Site Number") +
+  theme_minimal()
+```
