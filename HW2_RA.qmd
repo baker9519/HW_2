@@ -5,4 +5,120 @@ author: Rebeca Adam & Megan Baker
 editor: visual
 ---
 
-## 
+## July Stream Temperature Analysis
+
+```{r}
+library(dataRetrieval)
+library(tidyverse)
+library(lubridate)
+```
+
+```{r}
+siteNumbers <- c("14211720", "14211010", "14166000")
+parameterCd <- "00010"
+startDate <- "2010-01-01"
+endDate <- "2023-12-31"
+
+temp_data <- readNWISdv(siteNumbers, parameterCd, startDate, endDate) |>
+  as_tibble(.name_repair = "unique") |>
+  rename(
+    temp_C = X_00010_00003
+  ) |>
+  select(
+    agency_cd,
+    site_no,
+    Date,
+    temp_C
+  ) |>
+  mutate(
+    Date = as.Date(Date),
+    month = month(Date, label = TRUE),
+    year = year(Date)
+  )
+```
+
+```{r}
+write_csv(temp_data, "willametter_stream_temperature.csv")
+```
+
+```{r}
+temp_data <- read_csv("willametter_stream_temperature.csv")
+```
+
+```{r}
+ggplot(temp_data, aes(x = Date, y = temp_C, color = site_no)) +
+  geom_line() +
+  labs(
+    title = "Stream Temperature at Willametter River Sites",
+    x = "Date",
+    y = "Temperature (°C)",
+    color = "Site Number"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+temp_summary <- temp_data |>
+  group_by(site_no) |>
+  summarize(
+    mean_temp = mean(temp_C, na.rm = TRUE),
+    max_temp = max(temp_C, na.rm = TRUE),
+    min_temp = min(temp_C, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+temp_summary
+```
+
+```{r}
+july_data <- temp_data |>
+  filter(month == "Jul")
+```
+
+```{r}
+ggplot(july_data, aes(x = Date, y = temp_C, color = site_no)) +
+  geom_line() +
+  labs(
+    title = "July Stream Temperature Trends at Willamette River Sites",
+    x = "Date",
+    y = "Temperature (°C)",
+    color = "Site Number"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+july_summary <- july_data |>
+  group_by(site_no) |>
+  summarize(
+    mean_temp = mean(temp_C, na.rm = TRUE),
+    max_temp = max(temp_C, na.rm = TRUE),
+    min_temp = min(temp_C, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+july_summary
+```
+
+```{r}
+july_model <- glm(temp_C ~ year * site_no, data = july_data)
+
+summary(july_model)
+```
+
+## Interpretation
+The July stream temperatures indicate a statistically significant decreasing trend over time. The negative coefficient for "year" (p < 0.05) suggests that July temperatures have slightly declined each year at the baseline site. Although this result may seem contrary to the expectations of global warming, it may be reflective of local hydrologic variability, changes in flow or site-specific instead of broader climate trends.
+
+Differences between sites are also evident. The significant effect of "site_no" indicates that baseline temperatures vary across locations, and some sites are consistently warmer than others. This is supported by the results of the summary statistics where site 14211720 exhibits the highest mean and max temperatures, whereas site 14166000 is cooler.
+
+The model between "year:site_no" is statistically significant. This further supports finding that temperature trends differ among sites. These differences could be driven by factors such as groundwater outflow, shading, and elevation.
+
+Overall, the results highlight that July temoerature dynamics are not uniform across sites on the Willameter River in Oregon. Temporal and spatial trends/variation should be considered when reviewing temperature changes. 
+
+
+
+
+
+
+
+
