@@ -1,0 +1,120 @@
+---
+title: "HW 2 June"
+format: html
+author: Rebeca Adam & Megan Baker
+editor: visual
+---
+
+## June Stream Temperature Analysis
+
+```{r}
+library(dataRetrieval)
+library(tidyverse)
+library(lubridate)
+```
+
+```{r}
+siteNumbers <- c("14211720", "14211010", "14166000")
+parameterCd <- "00010"
+startDate <- "2010-01-01"
+endDate <- "2023-12-31"
+
+temp_data <- readNWISdv(siteNumbers, parameterCd, startDate, endDate) |>
+  as_tibble(.name_repair = "unique") |>
+  rename(
+    temp_C = X_00010_00003
+  ) |>
+  select(
+    agency_cd,
+    site_no,
+    Date,
+    temp_C
+  ) |>
+  mutate(
+    Date = as.Date(Date),
+    month = month(Date, label = TRUE),
+    year = year(Date)
+  )
+```
+
+```{r}
+write_csv(temp_data, "willametter_stream_temperature.csv")
+```
+
+```{r}
+temp_data <- read_csv("willametter_stream_temperature.csv")
+```
+
+```{r}
+ggplot(temp_data, aes(x = Date, y = temp_C, color = site_no)) +
+  geom_line() +
+  labs(
+    title = "Stream Temperature at Willametter River Sites",
+    x = "Date",
+    y = "Temperature (°C)",
+    color = "Site Number"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+temp_summary <- temp_data |>
+  group_by(site_no) |>
+  summarize(
+    mean_temp = mean(temp_C, na.rm = TRUE),
+    max_temp = max(temp_C, na.rm = TRUE),
+    min_temp = min(temp_C, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+temp_summary
+```
+
+```{r}
+june_data <- temp_data |>
+  filter(month == "Jun")|>
+  mutate(site_no = as.factor(site_no))
+
+write_csv(june_data, "june_willametter_stream_temperature.csv")
+
+```
+
+```{r}
+ggplot(june_data, aes(x = Date, y = temp_C, color = site_no)) +
+  geom_line() +
+  labs(
+    title = "June Stream Temperature Trends at Willametter River Sites",
+    x = "Date",
+    y = "Temperature (°C)",
+    color = "Site Number"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+june_summary <- june_data |>
+  group_by(site_no) |>
+  summarize(
+    mean_temp = mean(temp_C, na.rm = TRUE),
+    max_temp = max(temp_C, na.rm = TRUE),
+    min_temp = min(temp_C, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+june_summary
+```
+
+```{r}
+
+june_model <- glm(temp_C ~ year * site_no, data = june_data)
+
+summary(june_model)
+```
+
+## Interpretation
+
+The June stream temperatures indicate a statistically significant decreasing trend over time. The positive coefficient for "year" (p \< 0.001) suggests that June temperatures have gradually increased between 2010 and 2023. This finding is consistent with expectations of regional warming and changing hydrologic conditions over time.
+
+Differences between sites are also evident. Summary statistics show that site 14211720 had the highest average and maximum June temperatures, whereas site 14211010 generally exhibited cooler conditions. This indicates that stream temp. varies spatially across the Willametter River sites. This could be from groundwater inputs or surrounding plant/land cover.
+
+The model between "year:site_no" show that temperature differs among sites. This suggests that some locations may warm faster than others over time. Overall, the results highlight that June temoerature dynamics are not uniform across sites on the Willametter River in Oregon. Temporal and spatial trends/variation should be considered when reviewing temperature changes abd evaluating health and potential impacts to aquatic ecosystems.
