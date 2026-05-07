@@ -1,11 +1,11 @@
 ---
-title: "HW 2 July"
+title: "HW 2 June"
 format: html
 author: Rebeca Adam & Megan Baker
 editor: visual
 ---
 
-## July Stream Temperature Analysis
+## June Stream Temperature Analysis
 
 ```{r}
 library(dataRetrieval)
@@ -71,15 +71,19 @@ temp_summary
 ```
 
 ```{r}
-july_data <- temp_data |>
-  filter(month == "Jul")
+june_data <- temp_data |>
+  filter(month == "Jun")|>
+  mutate(site_no = as.factor(site_no))
+
+write_csv(june_data, "june_willametter_stream_temperature.csv")
+
 ```
 
 ```{r}
-ggplot(july_data, aes(x = Date, y = temp_C, color = site_no)) +
+ggplot(june_data, aes(x = Date, y = temp_C, color = site_no)) +
   geom_line() +
   labs(
-    title = "July Stream Temperature Trends at Willamette River Sites",
+    title = "June Stream Temperature Trends at Willametter River Sites",
     x = "Date",
     y = "Temperature (°C)",
     color = "Site Number"
@@ -88,7 +92,7 @@ ggplot(july_data, aes(x = Date, y = temp_C, color = site_no)) +
 ```
 
 ```{r}
-july_summary <- july_data |>
+june_summary <- june_data |>
   group_by(site_no) |>
   summarize(
     mean_temp = mean(temp_C, na.rm = TRUE),
@@ -97,28 +101,20 @@ july_summary <- july_data |>
     .groups = "drop"
   )
 
-july_summary
+june_summary
 ```
 
 ```{r}
-july_model <- glm(temp_C ~ year * site_no, data = july_data)
 
-summary(july_model)
+june_model <- glm(temp_C ~ year * site_no, data = june_data)
+
+summary(june_model)
 ```
 
 ## Interpretation
-The July stream temperatures indicate a statistically significant decreasing trend over time. The negative coefficient for "year" (p < 0.05) suggests that July temperatures have slightly declined each year at the baseline site. Although this result may seem contrary to the expectations of global warming, it may be reflective of local hydrologic variability, changes in flow or site-specific instead of broader climate trends.
 
-Differences between sites are also evident. The significant effect of "site_no" indicates that baseline temperatures vary across locations, and some sites are consistently warmer than others. This is supported by the results of the summary statistics where site 14211720 exhibits the highest mean and max temperatures, whereas site 14166000 is cooler.
+The June stream temperatures indicate a statistically significant decreasing trend over time. The positive coefficient for "year" (p \< 0.001) suggests that June temperatures have gradually increased between 2010 and 2023. This finding is consistent with expectations of regional warming and changing hydrologic conditions over time.
 
-The model between "year:site_no" is statistically significant. This further supports finding that temperature trends differ among sites. These differences could be driven by factors such as groundwater outflow, shading, and elevation.
+Differences between sites are also evident. Summary statistics show that site 14211720 had the highest average and maximum June temperatures, whereas site 14211010 generally exhibited cooler conditions. This indicates that stream temp. varies spatially across the Willametter River sites. This could be from groundwater inputs or surrounding plant/land cover.
 
-Overall, the results highlight that July temoerature dynamics are not uniform across sites on the Willameter River in Oregon. Temporal and spatial trends/variation should be considered when reviewing temperature changes. 
-
-
-
-
-
-
-
-
+The model between "year:site_no" show that temperature differs among sites. This suggests that some locations may warm faster than others over time. Overall, the results highlight that June temoerature dynamics are not uniform across sites on the Willametter River in Oregon. Temporal and spatial trends/variation should be considered when reviewing temperature changes abd evaluating health and potential impacts to aquatic ecosystems.
