@@ -1,9 +1,8 @@
 ---
-title: "HW_2"
+title: "HW 2 Complete Analysis"
 format: html
 editor: visual
 mainfont: "Arial"
-editor: visual
 author: "Megan Baker and Rebeca Adam"
 date: "2026-05-04"
 execute:
@@ -12,51 +11,193 @@ execute:
   message: false
 ---
 
-## Intro
-Imagine you are working on a project, where you are looking trends in water temperature you want to figure out if a) there is a trend and b) if the slope (trend) is positive (increasing) or negative (decreasing) and c) if there are differences between sites. Megan- January Rebeca- June
+## June and January Stream Temperature Analysis
 
-## Libraries setup
+# Overview of Total Sites
 
 ```{r}
-# Clear the environment
-rm(list=ls())
-
-# Install "dataRetreival"
-install.packages("dataRetrieval")
-
-# Libraries
-library(tidyverse)
-library(here)
-library(ggplot2)
-library(lubridate)
 library(dataRetrieval)
 library(tidyverse)
+library(lubridate)
 ```
-
-## Pasted from assignment
 
 ```{r}
 siteNumbers <- c("14211720", "14211010", "14166000")
-parameterCd <- "00010"  # water temperature
+parameterCd <- "00010"
 startDate <- "2010-01-01"
 endDate <- "2023-12-31"
 
-temp_data <- readNWISdv(siteNumbers, parameterCd, startDate, endDate)
+temp_data <- readNWISdv(siteNumbers, parameterCd, startDate, endDate) |>
+  as_tibble(.name_repair = "unique") |>
+  rename(
+    temp_C = X_00010_00003
+  ) |>
+  select(
+    agency_cd,
+    site_no,
+    Date,
+    temp_C
+  ) |>
+  mutate(
+    Date = as.Date(Date),
+    month = month(Date, label = TRUE),
+    year = year(Date)
+  )
 ```
 
-## Pasted from assignment
 
 ```{r}
-# rename columns for clarity
-colnames(temp_data) <- c("agency_cd", "site_no", "Date", "temp_C")
-# extract some date info for use later
-temp_data$month = month(temp_data$Date, label=TRUE)
-temp_data$year = year(temp_data$Date)
+temp_data <- read_csv("willametter_stream_temperature.csv")
+```
 
-# check by plotting
-ggplot(temp_data, aes(x=Date, y=temp_C, color=site_no)) +
+```{r}
+ggplot(temp_data, aes(x = Date, y = temp_C, color = site_no)) +
   geom_line() +
-  labs(title="Stream Temperature at Willamette River Sites",
-       x="Date", y="Temperature (°C)", color="Site Number") +
+  labs(
+    title = "Stream Temperature at Willametter River Sites",
+    x = "Date",
+    y = "Temperature (°C)",
+    color = "Site Number"
+  ) +
   theme_minimal()
 ```
+
+```{r}
+temp_summary <- temp_data |>
+  group_by(site_no) |>
+  summarize(
+    mean_temp = mean(temp_C, na.rm = TRUE),
+    max_temp = max(temp_C, na.rm = TRUE),
+    min_temp = min(temp_C, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+temp_summary
+```
+
+# June Analysis
+
+```{r}
+june_data <- temp_data |>
+  filter(month == "Jun")|>
+  mutate(site_no = as.factor(site_no))
+
+```
+
+```{r}
+ggplot(june_data, aes(x = Date, y = temp_C, color = site_no)) +
+  geom_line() +
+  labs(
+    title = "June Stream Temperature Trends at Willametter River Sites",
+    x = "Date",
+    y = "Temperature (°C)",
+    color = "Site Number"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+june_summary <- june_data |>
+  group_by(site_no) |>
+  summarize(
+    mean_temp = mean(temp_C, na.rm = TRUE),
+    max_temp = max(temp_C, na.rm = TRUE),
+    min_temp = min(temp_C, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+june_summary
+```
+
+```{r}
+
+june_model <- glm(temp_C ~ year * site_no, data = june_data)
+
+summary(june_model)
+```
+# January Analysis
+
+```{r}
+# filter for January temperatures
+jan_data <- temp_data |>
+  filter(month=="Jan")|>
+  mutate(site_no = as.factor(site_no))
+
+```
+
+```{r}
+
+jan_summary <- jan_data |>
+  group_by(site_no) |>
+  summarize(
+    mean_temp = mean(temp_C, na.rm = TRUE),
+    max_temp = max(temp_C, na.rm = TRUE),
+    min_temp = min(temp_C, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+jan_summary
+```
+
+
+```{r}
+jan_model <- glm(temp_C ~ year*site_no, data = jan_data)
+summary(jan_model)
+```
+
+
+```{r}
+ggplot(jan_data, aes(x = Date, y = temp_C, color = site_no)) +
+  geom_line() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(
+    title = "January Stream Temp Trends at Willamette River Sites",
+    x = "Date",
+    y = "Temperature (°C)",
+    color = "Site Number"
+  ) +
+  theme_minimal()
+```
+
+# Manager-Focused Plot
+```{r}
+manager_data <- temp_data |>
+  mutate(
+    Date = as.Date(Date),
+    year = year(Date),
+    month = month(Date, label = TRUE),
+    site_no = as.factor(site_no)
+  ) |>
+  filter(month %in% c("Jan", "Jun")) |>
+  group_by(year, month, site_no) |>
+  summarize(
+    mean_temp = mean(temp_C, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+ggplot(manager_data, aes(x = year, y = mean_temp, color = site_no)) +
+  geom_line(linewidth = 1.1) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  facet_wrap(~ month, scales = "free_y") +
+  labs(
+    title = "Annual Average Stream Temperature Trends by Site",
+    subtitle = "January and June temperatures show site-specific warming patterns from 2010–2023",
+    x = "Year",
+    y = "Average Temperature (°C)",
+    color = "Site Number"
+  ) +
+  theme_minimal()
+```
+This plot is the most meaningful for a manager because it summarizes  temperature trends by site and season for winter (January) and summer (June). This makes it easier to identify which monitoring locations may be warming faster and may need continued management attention.
+
+## Interpretation
+
+The June stream temperatures indicate a statistically significant incresing trend over time. The positive coefficient for "year" (p \< 0.001) suggests that June temperatures have gradually increased between 2010 and 2023. This finding is consistent with expectations of regional warming and changing hydrologic conditions over time.
+
+Differences between sites are also evident. Summary statistics show that site 14211720 had the highest average and maximum June temperatures, whereas site 14211010 generally exhibited cooler conditions. This indicates that stream temp. varies spatially across the Willametter River sites. This could be from groundwater inputs or surrounding plant/land cover.
+
+The model between "year:site_no" show that temperature differs among sites. This suggests that some locations may warm faster than others over time. Overall, the results highlight that June temperature dynamics are not uniform across sites on the Willametter River in Oregon. Temporal and spatial trends/variation should be considered when reviewing temperature changes and evaluating health and potential impacts to aquatic ecosystems.
+
+Analysis of January stream temperatures across three Willamette River sites from 2010 to 2023 reveals modest but notable warming trends. Site 14166000 shows the warmest mean January temperature (6.54°C), followed closely by site 14211720 (6.52°C), while site 14211010 runs notably cooler on average (5.33°C), though all three sites share a similar maximum range of 7.8–9.1°C. The GLM results indicate a positive temperature trend at the reference site (14166000), though this slope is only marginally significant (p = 0.058). 
+
+Sites 14211010 and 14211720 show steeper warming slopes with site 14211720's steeper trend reaching statistical significance (p = 0.028). The dashed trend lines in the updated plot make this pattern visible: all three sites trend slightly upward over the period, with the two upstream sites warming at a faster rate than the reference site. The sharp downward spikes visible around 2017 for site 14211010 are likely outliers and may be a caveat. Overall, while the warming signal in January is relatively subtle compared to warmer months, the consistent positive direction across all three sites is ecologically meaningful and warrants continued monitoring.
