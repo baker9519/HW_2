@@ -1,4 +1,4 @@
-agency_cd,site_no,Date,temp_C,,month,year
+agency_cd,site_no,Date,temp_C,A,month,year
 USGS,14166000,2010-01-01,6.6,A,Jan,2010
 USGS,14166000,2010-01-02,7,A,Jan,2010
 USGS,14166000,2010-01-03,6.8,A,Jan,2010
