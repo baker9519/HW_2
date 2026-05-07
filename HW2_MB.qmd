@@ -12,10 +12,6 @@ execute:
   message: false
 ---
 
-## Intro
-
-Imagine you are working on a project, where you are looking trends in water temperature you want to figure out if a) there is a trend and b) if the slope (trend) is positive (increasing) or negative (decreasing) and c) if there are differences between sites. Megan- January Rebeca- June
-
 ## Libraries setup
 
 ```{r}
@@ -45,8 +41,6 @@ endDate <- "2023-12-31"
 temp_data <- readNWISdv(siteNumbers, parameterCd, startDate, endDate)
 ```
 
-## Pasted from assignment
-
 ```{r}
 # rename columns for clarity
 colnames(temp_data) <- c("agency_cd", "site_no", "Date", "temp_C")
@@ -69,3 +63,48 @@ jan_data <- subset(temp_data, month == "Jan")
 jan_model <- glm(temp_C ~ year*site_no, data = jan_data)
 summary(jan_model)
 ```
+
+```{r}
+names(jan_data)[5] <- "A"
+
+jan_summary <- jan_data |>
+  group_by(site_no) |>
+  summarize(
+    mean_temp = mean(temp_C, na.rm = TRUE),
+    max_temp = max(temp_C, na.rm = TRUE),
+    min_temp = min(temp_C, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+jan_summary
+```
+
+```{r}
+names(temp_data)[5] <- "A"
+
+jan_data <- temp_data |>
+  filter (month == "Jan")|>
+  mutate(site_no = as.factor(site_no))
+```
+
+#create csv
+
+```{r}
+write_csv(temp_data, "willametter_stream_temp.csv")
+
+```
+
+```{r}
+ggplot(jan_data, aes(x = Date, y = temp_C, color = site_no)) +
+  geom_line() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(
+    title = "January Stream Temp Trends at Willamette River Sites",
+    x = "Date",
+    y = "Temperature (°C)",
+    color = "Site Number"
+  ) +
+  theme_minimal()
+```
+
+Analysis of January stream temperatures across three Willamette River sites from 2010 to 2023 reveals modest but notable warming trends. Site 14166000 shows the warmest mean January temperature (6.54°C), followed closely by site 14211720 (6.52°C), while site 14211010 runs notably cooler on average (5.33°C), though all three sites share a similar maximum range of 7.8–9.1°C. The GLM results indicate a positive temperature trend at the reference site (14166000), though this slope is only marginally significant (p = 0.058). Sites 14211010 and 14211720 show steeper warming slopes with site 14211720's steeper trend reaching statistical significance (p = 0.028). The dashed trend lines in the updated plot make this pattern visible: all three sites trend slightly upward over the period, with the two upstream sites warming at a faster rate than the reference site. The sharp downward spikes visible around 2017 for site 14211010 are likely outliers and may be a caveat. Overall, while the warming signal in January is relatively subtle compared to warmer months, the consistent positive direction across all three sites is ecologically meaningful and warrants continued monitoring.
